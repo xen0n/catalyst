@@ -80,7 +80,7 @@ case ${clst_hostarch} in
 			echo "--recoverykernel=boot/${x}" >> ${icfg}
 		done
 	;;
-	ia64|ppc*|powerpc*|sparc*)
+	ia64|loong|ppc*|powerpc*|sparc*)
 		kern_subdir=/boot
 		iacfg=$1/boot/grub/grub.cfg
 		mkdir -p $1/boot/grub
