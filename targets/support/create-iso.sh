@@ -19,7 +19,7 @@ case ${clst_hostarch} in
                 cdmaker="grub-mkrescue"
                 cdmakerpkg="dev-libs/libisoburn and sys-boot/grub:2"
                 ;;
-	ia64)
+	ia64|loong)
 		cdmaker="grub-mkrescue"
 		cdmakerpkg="sys-fs/mtools, dev-libs/libisoburn, and sys-boot/grub:2"
 		;;
@@ -54,6 +54,9 @@ then
 				;;
 				ia64)
 					clst_iso_volume_id="Gentoo Linux - IA64"
+				;;
+				loong)
+					clst_iso_volume_id="Gentoo Linux - LoongArch"
 				;;
 				m68k)
 					clst_iso_volume_id="Gentoo Linux - M68K"
@@ -198,7 +201,7 @@ case ${clst_hostarch} in
 			*) die "SGI LiveCD(s) only support the 'squashfs' fstype!"	;;
 		esac
 	;;
-	ia64|ppc*|powerpc*|sparc*)
+	ia64|loong|ppc*|powerpc*|sparc*)
 		case ${clst_hostarch} in
 		sparc*) extra_opts="--sparc-boot" ;;
 		esac
