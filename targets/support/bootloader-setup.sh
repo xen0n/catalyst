@@ -29,6 +29,18 @@ check_filesystem_type
 default_append_line="root=/dev/ram0 init=/linuxrc ${cmdline_opts} ${custom_kopts} cdroot"
 [ -n "${clst_splash_theme}" ] && default_append_line="${default_append_line} splash=silent,theme:${clst_livecd_splash_theme} CONSOLE=/dev/tty1 quiet"
 
+# prepend the early cpio containing fixed ACPI tables for loong
+if [ "${clst_buildarch}" = "loong" ]; then
+	early_cpio_path=/boot/loongarch-acpi-initrd.img
+	[ -f "${early_cpio_path}" ] || die "!!! ${early_cpio_path} is not found."
+
+	for x in ${clst_boot_kernel}
+	do
+		cat "${early_cpio_path}" "$1/boot/${x}.igz" > "$1/boot/${x}.igz.new" || die "cannot merge early cpio into initrd"
+		mv "$1/boot/${x}.igz.new" "$1/boot/${x}.igz" || die "cannot move new initrd into place"
+	done
+fi
+
 case ${clst_hostarch} in
 	alpha)
 		# NO SOFTLEVEL SUPPORT YET
