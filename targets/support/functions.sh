@@ -125,6 +125,39 @@ create_bootloader() {
   popd || die "Failed to leave livecd dir"
 }
 
+create_loong_bootloader() {
+  if [ -x "/usr/bin/grub2-mkstandalone" ]; then
+    grubmkstndaln="/usr/bin/grub2-mkstandalone"
+  elif [ -x "/usr/bin/grub-mkstandalone" ]; then
+    grubmkstndaln="/usr/bin/grub-mkstandalone"
+  else
+    die "Unable to find grub-mkstandalone"
+  fi
+
+  pushd "${1}" || die "Failed to enter livecd dir ${1}"
+
+  # while $1/grub is unused here, it triggers grub config building in bootloader-setup.sh
+  mkdir -p EFI/BOOT
+
+  #create grub-stub.cfg for embedding in grub-mkstandalone
+  echo "insmod part_gpt" > grub-stub.cfg
+  echo "insmod part_msdos" >> grub-stub.cfg
+  echo "search --no-floppy --set=root --file /livecd" >> grub-stub.cfg
+  echo "configfile /boot/grub/grub.cfg" >> grub-stub.cfg
+
+  # LoongArch firmware looks for /EFI/BOOT/BOOTLOONGARCH.EFI
+  ${grubmkstndaln} /boot/grub/grub.cfg=./grub-stub.cfg \
+    --compress=xz \
+    --modules='fat ext2' \
+    -O loongarch64-efi \
+    -o ./EFI/BOOT/BOOTLOONGARCH.EFI \
+    --themes= || die "Failed to make BOOTLOONGARCH.EFI"
+  # loong has no secure boot shim support yet
+
+  rm grub-stub.cfg || echo "Failed to remove grub-stub.cfg, but this hurts nothing"
+  popd || die "Failed to leave livecd dir"
+}
+
 extract_kernels() {
 	# extract multiple kernels
 	# $1 = Destination

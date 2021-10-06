@@ -201,13 +201,47 @@ case ${clst_hostarch} in
 			*) die "SGI LiveCD(s) only support the 'squashfs' fstype!"	;;
 		esac
 	;;
-	ia64|loong|ppc*|powerpc*|sparc*)
+	ia64|ppc*|powerpc*|sparc*)
 		case ${clst_hostarch} in
 		sparc*) extra_opts="--sparc-boot" ;;
 		esac
 
 		echo ">> Running grub-mkrescue to create iso image...."
 		grub-mkrescue ${extra_opts} -o "${1}" "${clst_target_path}"
+	;;
+	loong)
+		if [ -e "${clst_target_path}/gentoo.efimg" ]
+		then
+			echo "Found prepared EFI boot image at \
+				${clst_target_path}/gentoo.efimg"
+		else
+			echo "Preparing EFI boot image"
+
+			# prepare gentoo.efimg from clst_target_path /EFI dir
+			iaSizeTemp=$(du -sk --apparent-size "${clst_target_path}/EFI" 2>/dev/null)
+			iaSizeB=$(echo ${iaSizeTemp} | cut '-d ' -f1)
+			iaSize=$((${iaSizeB}+64)) # add slack, tested near minimum for overhead
+			echo "Creating loopback file of size ${iaSize}kB"
+			dd if=/dev/zero of="${clst_target_path}/gentoo.efimg" bs=1k \
+				count=${iaSize}
+			echo "Formatting loopback file with FAT FS"
+			mkfs.vfat -n GENTOOLIVE "${clst_target_path}/gentoo.efimg"
+
+			mkdir "${clst_target_path}/gentoo.efimg.mountPoint"
+			echo "Mounting FAT loopback file"
+			mount -t vfat -o loop "${clst_target_path}/gentoo.efimg" \
+				"${clst_target_path}/gentoo.efimg.mountPoint" || die "Failed to mount EFI image file"
+
+			echo "Populating EFI image file from ${clst_target_path}/EFI"
+			cp -rv "${clst_target_path}"/EFI/ \
+				"${clst_target_path}/gentoo.efimg.mountPoint" || die "Failed to populate EFI image file"
+
+			umount "${clst_target_path}/gentoo.efimg.mountPoint"
+			rmdir "${clst_target_path}/gentoo.efimg.mountPoint"
+		fi
+
+		echo 'Creating ISO using EFI bootloader'
+		run_mkisofs -J -R -l ${mkisofs_zisofs_opts} -V "${clst_iso_volume_id}" -o "${1}" -b gentoo.efimg -c boot.cat -no-emul-boot "${clst_target_path}"/
 	;;
 	x86|amd64)
 		# detect if an EFI bootloader is desired
